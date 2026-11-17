@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANA Call Assistant</title>
+<style>
+  :root {
+    --blue-900: #0b2e5f;
+    --blue-700: #12468f;
+    --blue-600: #1a5cb0;
+    --blue-100: #dbe9f9;
+    --blue-50: #f0f6fd;
+    --ink: #1c2733;
+    --muted: #5b6b7c;
+    --line: #d5e1ee;
+    --panel: #ffffff;
+    --field: #ffffff;
+    --ok: #1e7d46;
+    --warn: #a8680b;
+    --bad: #b03a2e;
+  }
+  body.dark {
+    --blue-900: #0a1930;
+    --blue-700: #14335f;
+    --blue-600: #2a6bb5;
+    --blue-100: #24405f;
+    --blue-50: #101f33;
+    --ink: #dce7f3;
+    --muted: #8fa3b8;
+    --line: #2a4260;
+    --panel: #0f2238;
+    --field: #0b1a2c;
+    --ok: #3ec97e;
+    --warn: #e0a23e;
+    --bad: #e06055;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", Arial, sans-serif;
+    background: #eef4fb url("assets/clouds.jpg") no-repeat center top / cover fixed;
+    color: var(--ink);
+    line-height: 1.55;
+    transition: background .3s ease;
+  }
+  body.dark {
+    background: #0a0f1c url("assets/stars.jpg") no-repeat center top / cover fixed;
+  }
+  header {
+    background: linear-gradient(135deg, rgba(11,46,95,.94), rgba(26,92,176,.90));
+    color: #fff;
+    padding: 24px;
+  }
+  body.dark header {
+    background: linear-gradient(135deg, rgba(6,14,30,.94), rgba(20,51,95,.90));
+  }
+  header .wrap { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  header .title-block { flex: 1; min-width: 0; }
+  .controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ctrl-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,.14); color: #fff;
+    border: 1px solid rgba(255,255,255,.4);
+    font-size: 17px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .ctrl-btn:hover { background: rgba(255,255,255,.28); }
+  .ctrl-btn.lang { width: auto; min-width: 38px; padding: 0 9px; font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+  .ctrl-btn.active { background: #fff; color: var(--blue-700); border-color: #fff; }
+  .logo-badge {
+    background: #fff; border-radius: 10px; padding: 8px 14px;
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+  .logo-img { height: 46px; width: auto; display: block; }
+  .logo-fallback {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: #fff; color: var(--blue-700);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; letter-spacing: 1px;
+  }
+  header h1 { font-size: 22px; }
+  header p { font-size: 13px; opacity: .9; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+  section {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px 22px; box-shadow: 0 1px 3px rgba(11,46,95,.06);
+  }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .sec-num {
+    background: var(--blue-700); color: #fff; border-radius: 6px;
+    font-size: 12px; font-weight: 700; padding: 2px 8px;
+  }
+  h2 { font-size: 18px; color: var(--blue-600); }
+  body:not(.dark) h2 { color: var(--blue-900); }
+  .sec-desc { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  label { font-size: 12px; font-weight: 600; color: var(--blue-600); text-transform: uppercase; letter-spacing: .04em; }
+  body:not(.dark) label { color: var(--blue-700); }
+  textarea, input[type="text"] {
+    width: 100%; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; font: inherit; font-size: 14px; color: var(--ink);
+    resize: vertical; background: var(--field);
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--blue-600); outline-offset: -1px; }
+  button {
+    background: var(--blue-600); color: #fff; border: none; border-radius: 8px;
+    padding: 9px 18px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: var(--blue-700); }
+  button.ghost { background: var(--panel); color: var(--blue-600); border: 1px solid var(--blue-600); }
+  body:not(.dark) button.ghost { color: var(--blue-700); }
+  button.ghost:hover { background: var(--blue-50); }
+  .btn-row { margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .cards { display: grid; gap: 12px; }
+  .card {
+    border: 1px solid var(--line); border-left: 4px solid var(--blue-600);
+    border-radius: 8px; padding: 12px 14px; background: var(--blue-50);
+  }
+  .card h3 { font-size: 14px; color: var(--blue-600); margin-bottom: 4px; display: inline; }
+  body:not(.dark) .card h3 { color: var(--blue-900); }
+  .card p { font-size: 13px; color: var(--ink); margin-top: 4px; }
+  .card .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .result {
+    margin-top: 4px; border: 1px solid var(--blue-100); background: var(--blue-50);
+    border-radius: 8px; padding: 14px 16px; font-size: 14px; white-space: pre-wrap; min-height: 60px;
+  }
+  .chip {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px;
+    padding: 3px 12px; color: #fff;
+  }
+  .chip.asas { background: var(--bad); }
+  .chip.sederhana { background: var(--warn); }
+  .chip.lancar { background: var(--ok); }
+  .fix-box { margin-top: 8px; }
+  .fix-box .note { font-size: 13px; color: var(--warn); margin-bottom: 4px; }
+  .fix-box .better { font-size: 15px; color: var(--ok); font-weight: 600; }
+  .fix-box .reason { font-size: 12px; color: var(--muted); }
+  .two-col { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 760px) { .two-col { grid-template-columns: 1fr 1fr; } }
+  footer { text-align: center; color: #f2f6fb; font-size: 12px; padding: 8px 0 24px; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="logo-badge"><img class="logo-img" src="assets/ana-logo.png" alt="ANA"
+         onerror="this.outerHTML='&lt;div class=&quot;logo-fallback&quot;&gt;ANA&lt;/div&gt;'"></span>
+    <div class="title-block">
+      <h1 id="app-title">ANA コールアシスタント</h1>
+      <p id="app-desc"></p>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" id="btn-theme" title="Light / Dark" aria-label="Light / Dark mode">🌙</button>
+      <button class="ctrl-btn lang" data-lang="ms" title="Bahasa Melayu">MS</button>
+      <button class="ctrl-btn lang" data-lang="en" title="English">EN</button>
+      <button class="ctrl-btn lang active" data-lang="ja" title="日本語">JP</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- 1. Call Summary -->
+  <section id="sec-summary">
+    <div class="sec-head"><span class="sec-num">1</span><h2 id="sec1-title"></h2></div>
+    <p class="sec-desc" id="sec1-desc"></p>
+
+    <div class="cards" id="summary-examples"></div>
+
+    <div class="two-col" style="margin-top:16px;">
+      <div>
+        <label for="call-input" id="lbl-call-input"></label>
+        <textarea id="call-input" rows="7"></textarea>
+        <div class="btn-row">
+          <button id="btn-summary"></button>
+          <button class="ghost" id="btn-summary-clear"></button>
+        </div>
+      </div>
+      <div>
+        <label id="lbl-summary"></label>
+        <div class="result" id="summary-result" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Japanese Level -->
+  <section id="sec-level">
+    <div class="sec-head"><span class="sec-num">2</span><h2 id="sec2-title"></h2></div>
+    <p class="sec-desc" id="sec2-desc"></p>
+
+    <div class="cards" id="level-examples"></div>
+
+    <div class="two-col" style="margin-top:16px;">
+      <div>
+        <label for="jp-input" id="lbl-jp-input"></label>
+        <textarea id="jp-input" rows="4"></textarea>
+        <div class="btn-row">
+          <button id="btn-level"></button>
+          <button class="ghost" id="btn-level-clear"></button>
+        </div>
+      </div>
+      <div>
+        <label id="lbl-level"></label>
+        <div class="result" id="level-result" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Phrase Check -->
+  <section id="sec-phrase">
+    <div class="sec-head"><span class="sec-num">3</span><h2 id="sec3-title"></h2></div>
+    <p class="sec-desc" id="sec3-desc"></p>
+
+    <div class="cards" id="phrase-examples"></div>
+
+    <div class="two-col" style="margin-top:16px;">
+      <div>
+        <label for="phrase-input" id="lbl-phrase-input"></label>
+        <input type="text" id="phrase-input">
+        <div class="btn-row">
+          <button id="btn-phrase"></button>
+          <button class="ghost" id="btn-phrase-clear"></button>
+        </div>
+      </div>
+      <div>
+        <label id="lbl-fix"></label>
+        <div class="result" id="phrase-result" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer id="footer-text"></footer>
+
+<script>
+/* ============================================================
+   i18n — 3 bahasa: ms (Melayu), en (English), ja (日本語)
+   ============================================================ */
+
+var I18N = {
+  ms: {
+    title: "ANA Call Assistant",
+    desc: "Alat bantu untuk ejen IT sokongan panggilan syarikat penerbangan — rumusan panggilan, tahap bahasa Jepun, dan semakan frasa. Semua contoh adalah rekaan; tiada data disimpan.",
+    sec1Title: "Ringkasan Panggilan",
+    sec1Desc: "Poin-poin utama panggilan dalam satu tempat yang jelas. Masukkan nota atau transkrip ringkas semasa panggilan, dan rumusan dipaparkan serta-merta.",
+    lblCall: "Nota / transkrip panggilan",
+    phCall: "cth. Penelefon: Encik Tanaka, pelanggan ANA. Isu: wifi dalam penerbangan tidak berfungsi. Tindakan: ejen menghantar panduan sambungan semula.",
+    btnSummary: "Rumuskan panggilan",
+    btnClear: "Kosongkan",
+    lblSummary: "Rumusan",
+    sec2Title: "Analisis Bahasa Jepun",
+    sec2Desc: "Anggaran tahap bahasa Jepun penelefon dalam perkataan mudah — asas, sederhana, atau lancar — supaya ejen tahu cara bertutur pada panggilan ini.",
+    lblJp: "Teks bahasa Jepun daripada panggilan",
+    phJp: "cth. パソコンが急に動かなくなって、予約ができません。",
+    btnLevel: "Nilai tahap bahasa",
+    lblLevel: "Anggaran tahap",
+    sec3Title: "Semakan Frasa",
+    sec3Desc: "Frasa Jepun yang kedengaran salah atau tidak sesuai ditanda, dengan cadangan pembetulan dan sebab ringkas. Semak frasa sebelum menggunakannya pada panggilan.",
+    lblPhrase: "Frasa Jepun untuk disemak",
+    phPhrase: "cth. お客様、ちょっと待ってください。",
+    btnPhrase: "Betulkan frasa",
+    lblFix: "Pembetulan dicadangkan",
+    footer: "ANA Call Assistant — semua contoh adalah rekaan untuk latihan. Tiada data disimpan antara lawatan.",
+    needCall: "Sila masukkan nota atau transkrip panggilan terlebih dahulu.",
+    needJp: "Sila masukkan teks bahasa Jepun terlebih dahulu.",
+    needPhrase: "Sila masukkan frasa Jepun untuk disemak.",
+    sumTitle: "RINGKASAN PANGGILAN",
+    callerLabel: "Penelefon",
+    mainPoints: "Poin utama",
+    linesAnalyzed: "baris dianalisis",
+    agentActions: "Tindakan ejen",
+    refLabel: "Rujukan",
+    statusLine: "Status: Perlu susulan ejen.",
+    lvlBasic: "TAHAP: ASAS",
+    lvlBasicDesc: "Penelefon guna ayat pendek dan mudah, kosa kata terhad.",
+    lvlBasicTip: "Cadangan: Guna soalan ya/tidak, bercakap perlahan, sahkan maklumat satu persatu.",
+    lvlMid: "TAHAP: SEDERHANA",
+    lvlMidDesc: "Penelefon boleh terangkan situasi dengan jelas, tetapi mungkin keliru dengan istilah teknikal.",
+    lvlMidTip: "Cadangan: Elakkan jargon, terangkan langkah demi langkah, minta penelefon ulang arahan.",
+    lvlHigh: "TAHAP: LANCAR",
+    lvlHighDesc: "Penelefon guna ayat kompleks dan lancar, termasuk istilah teknikal.",
+    lvlHighTip: "Cadangan: Boleh terus guna istilah biasa SOP dan percepatkan penyelesaian.",
+    agentPhrase: "Frasa ejen",
+    phraseOk: "Frasa ini kelihatan sesuai untuk konteks panggilan sokongan.\n\nIngat: guna bentuk sopan (です/ます + いただけますでしょうか) apabila meminta pelanggan melakukan sesuatu.",
+    origPhrase: "Frasa asal",
+    problemN: "Masalah",
+    fixLabel: "Pembetulan",
+    reasonLabel: "Sebab",
+    useFix: "Guna pembetulan di atas semasa panggilan.",
+    demoSummary: "RINGKASAN PANGGILAN (contoh)\n------------------\nPenelefon: Encik Sato\nPoin utama:\n  1. Wi-Fi dalam penerbangan ANA SKY Wi-Fi tidak dapat disambung pada penerbangan NH822.\nTindakan ejen:\n  – Panduan sambungan semula dihantar melalui e-mel.\nStatus: Perlu susulan ejen.",
+    callerRe: "(?:penelefon|pelanggan)\\s*[:：]\\s*([^,，。.\\n]+)",
+    issueRe: /isu|masalah|ralat|error|tidak dapat|gagal|rosak|tidak berfungsi|tidak boleh/i,
+    actionRe: /^tindakan|tindakan:|ejen meng|langkah|but semula|menetapkan semula|menghantar|mengesahkan|memandu|mencatat/i,
+    summaries: [
+      { title: "Panggilan 1 — Wi-Fi dalam penerbangan tidak berfungsi",
+        lines: ["Penelefon: Encik Sato, pelanggan ANA dari Osaka.",
+                "Isu: Wi-Fi dalam penerbangan (ANA SKY Wi-Fi) tidak dapat disambung pada penerbangan NH822 Haneda–Kuala Lumpur.",
+                "Tindakan: Ejen mengesahkan akaun pelanggan dan menghantar panduan sambungan semula melalui e-mel.",
+                "Keputusan: Pelanggan diminta cuba semula sebelum penerbangan; tiket dicatat untuk pasukan IT."],
+        meta: "Kategori: Isu penyambungan · Keutamaan: Sederhana" },
+      { title: "Panggilan 2 — Aplikasi ANA tidak dapat log masuk",
+        lines: ["Penelefon: Puan Yamada, melaporkan ralat \"kata laluan salah\" pada aplikasi ANA walaupun kata laluan betul.",
+                "Isu: Alamat e-mel lama dalam akaun menyebabkan pengesahan dua langkah gagal.",
+                "Tindakan: Ejen menetapkan semula pengesahan dua langkah dan mengemas kini alamat e-mel selepas pengesahan identiti.",
+                "Keputusan: Pelanggan berjaya log masuk semasa panggilan; tiket ditutup."],
+        meta: "Kategori: Akaun & log masuk · Keutamaan: Tinggi" },
+      { title: "Panggilan 3 — Kiosk check-in di Lapangan Terbang Kansai rosak",
+        lines: ["Penelefon: Encik Ito, staf lapangan terbang, melaporkan dua kiosk check-in ANA menunjukkan skrin ralat.",
+                "Isu: Peranti gagal memuat turun kemas kini konfigurasi selepas pemulihan rangkaian pada pagi tadi.",
+                "Tindakan: Ejen memandu but semula jauh dan mengesahkan status peranti melalui papan pemuka operasi.",
+                "Keputusan: Satu kiosk kembali beroperasi; satu dirujuk kepada juruteknik di lokasi."],
+        meta: "Kategori: Perkakasan di lokasi · Keutamaan: Sederhana" }
+    ],
+    levels: [
+      { chip: "asas", title: "Tahap: Asas", jp: "「Wi-Fi、ダメです。助けてください。」",
+        explain: "Ayat sangat pendek, kosa kata terhad, tiada butiran. Gunakan soalan ya/tidak dan bercakap perlahan." },
+      { chip: "sederhana", title: "Tahap: Sederhana", jp: "「予約しようとしたら、画面がエラーになって先に進めませんでした。」",
+        explain: "Boleh menerangkan situasi dengan jelas, tetapi mungkin keliru dengan istilah teknikal. Elakkan jargon; sahkan langkah demi langkah." },
+      { chip: "lancar", title: "Tahap: Lancar", jp: "「アップデート後に再起動してもエラーコードが出続けるので、ログを確認していただけますか。」",
+        explain: "Ayat kompleks dan lancar, termasuk istilah teknikal. Boleh terus guna istilah biasa SOP." }
+    ],
+    phraseExamples: [
+      { bad: "お客様、ちょっと待ってください。",
+        note: "「ちょっと待って」kedengaran kasar / arahan terus kepada pelanggan.",
+        better: "おそれいりますが、少々お待ちいただけますでしょうか。",
+        reason: "Bentuk sopan (kenjougo + permintaan lembut) sesuai untuk panggilan sokongan pelanggan." },
+      { bad: "それはできないです。",
+        note: "Penolakan terus-terang, kedengaran tidak membantu.",
+        better: "申し訳ございませんが、そちらは対応が難しい状況でございます。代わりに〇〇でお手伝いできます。",
+        reason: "Penolakan dilembutkan dan alternatif ditawarkan." },
+      { bad: "パスワードをもう一回入力して。",
+        note: "Gaya kasual \"もう一回\" dan arahan biasa tidak sesuai di telefon.",
+        better: "恐れ入りますが、パスワードをもう一度ご入力いただけますでしょうか。",
+        reason: "\"もう一度\" lebih formal dan bentuk permintaan sopan digunakan." }
+    ],
+    rules: [
+      { test: /ちょっと待って/, note: "「ちょっと待って」terlalu kasual dan kedengaran kasar dalam panggilan pelanggan.",
+        better: "おそれいりますが、少々お待ちいただけますでしょうか。", reason: "Guna bentuk sopan kenjougo apabila meminta pelanggan menunggu." },
+      { test: /できないです|無理です/, note: "Penolakan terus-terang kedengaran tidak membantu.",
+        better: "申し訳ございませんが、そちらは対応が難しい状況でございます。代わりに〇〇でお手伝いできます。", reason: "Lembutkan penolakan dan sentiasa tawarkan alternatif." },
+      { test: /もう一回/, note: "「もう一回」terlalu kasual; gunakan bentuk formal.",
+        better: "恐れ入りますが、もう一度ご入力いただけますでしょうか。", reason: "「もう一度」lebih formal, dengan permintaan sopan." },
+      { test: /してください$|して(ね|よ)$/, note: "Arahan terus tanpa bentuk sopan kedengaran seperti perintah.",
+        better: "お手数ですが、〇〇していただけますでしょうか。", reason: "Tambah permintaan sopan untuk arahan kepada pelanggan." },
+      { test: /何ですか$|わからない|知らない/, note: "Soalan terus / penafian terus kedengaran menyerang atau tidak meyakinkan.",
+        better: "差し支えなければ、詳細をお教えいただけますでしょうか。確認いたしますので、少々お時間をください。", reason: "Frasa lembut dan tindakan proaktif mengurangkan nada kasar." }
+    ]
+  },
+
+  en: {
+    title: "ANA Call Assistant",
+    desc: "A helper tool for airline IT support call agents — call summary, Japanese level check, and phrase review. All examples are fictional; nothing is saved.",
+    sec1Title: "Call Summary",
+    sec1Desc: "Key call points in one clear place. Enter a short note or transcript during the call and a summary appears instantly.",
+    lblCall: "Call note / transcript",
+    phCall: "e.g. Caller: Mr Tanaka, ANA customer. Issue: in-flight Wi-Fi not working. Action: agent sent a reconnection guide.",
+    btnSummary: "Summarize call",
+    btnClear: "Clear",
+    lblSummary: "Summary",
+    sec2Title: "Japanese Level Analysis",
+    sec2Desc: "An easy estimate of the caller's Japanese level in plain words — basic, intermediate, or fluent — so the agent knows how to speak on this call.",
+    lblJp: "Japanese text from the call",
+    phJp: "e.g. パソコンが急に動かなくなって、予約ができません。",
+    btnLevel: "Estimate language level",
+    lblLevel: "Level estimate",
+    sec3Title: "Phrase Check",
+    sec3Desc: "Japanese phrases that sound wrong or unsuitable are flagged, with a suggested correction and a short reason. Check a phrase before using it on the call.",
+    lblPhrase: "Japanese phrase to check",
+    phPhrase: "e.g. お客様、ちょっと待ってください。",
+    btnPhrase: "Fix phrase",
+    lblFix: "Suggested correction",
+    footer: "ANA Call Assistant — all examples are fictional training data. Nothing is saved between visits.",
+    needCall: "Please enter a call note or transcript first.",
+    needJp: "Please enter Japanese text first.",
+    needPhrase: "Please enter a Japanese phrase to check.",
+    sumTitle: "CALL SUMMARY",
+    callerLabel: "Caller",
+    mainPoints: "Main points",
+    linesAnalyzed: "lines analyzed",
+    agentActions: "Agent actions",
+    refLabel: "Reference",
+    statusLine: "Status: Agent follow-up needed.",
+    lvlBasic: "LEVEL: BASIC",
+    lvlBasicDesc: "The caller uses short, simple sentences with limited vocabulary.",
+    lvlBasicTip: "Tip: Use yes/no questions, speak slowly, confirm information one by one.",
+    lvlMid: "LEVEL: INTERMEDIATE",
+    lvlMidDesc: "The caller can explain the situation clearly but may struggle with technical terms.",
+    lvlMidTip: "Tip: Avoid jargon, explain step by step, ask the caller to repeat instructions back.",
+    lvlHigh: "LEVEL: FLUENT",
+    lvlHighDesc: "The caller uses complex, fluent sentences including technical terms.",
+    lvlHighTip: "Tip: Standard SOP wording is fine and you can speed up the resolution.",
+    agentPhrase: "Agent phrase",
+    phraseOk: "This phrase looks fine for a support call.\n\nReminder: use polite forms (です/ます + いただけますでしょうか) whenever you ask the customer to do something.",
+    origPhrase: "Original phrase",
+    problemN: "Problem",
+    fixLabel: "Correction",
+    reasonLabel: "Reason",
+    useFix: "Use the correction above during the call.",
+    demoSummary: "CALL SUMMARY (example)\n------------------\nCaller: Mr Sato\nMain points:\n  1. ANA SKY in-flight Wi-Fi cannot connect on flight NH822.\nAgent actions:\n  – Reconnection guide sent by e-mail.\nStatus: Agent follow-up needed.",
+    callerRe: "(?:caller|customer)\\s*[:：]\\s*([^,，。.\\n]+)",
+    issueRe: /issue|problem|error|cannot|can't|fails|broken|not working/i,
+    actionRe: /^action|action:|agent sent|steps|restart|reset|sent|confirming|logged/i,
+    summaries: [
+      { title: "Call 1 — In-flight Wi-Fi not working",
+        lines: ["Caller: Mr Sato, an ANA customer from Osaka.",
+                "Issue: In-flight Wi-Fi (ANA SKY Wi-Fi) cannot connect on flight NH822 Haneda–Kuala Lumpur.",
+                "Action: Agent verified the customer's account and sent a reconnection guide by e-mail.",
+                "Outcome: Customer asked to retry before the flight; ticket logged for the IT team."],
+        meta: "Category: Connectivity issue · Priority: Medium" },
+      { title: "Call 2 — ANA app login failure",
+        lines: ["Caller: Ms Yamada, reporting a \"wrong password\" error on the ANA app despite the correct password.",
+                "Issue: An old e-mail address on the account caused two-step verification to fail.",
+                "Action: Agent reset two-step verification and updated the e-mail address after identity checks.",
+                "Outcome: Customer logged in successfully during the call; ticket closed."],
+        meta: "Category: Account & login · Priority: High" },
+      { title: "Call 3 — Check-in kiosks broken at Kansai Airport",
+        lines: ["Caller: Mr Ito, airport staff, reporting two ANA check-in kiosks showing error screens.",
+                "Issue: Devices failed to download a configuration update after this morning's network recovery.",
+                "Action: Agent guided a remote restart and verified device status on the operations dashboard.",
+                "Outcome: One kiosk back in service; the other handed to an on-site technician."],
+        meta: "Category: On-site hardware · Priority: Medium" }
+    ],
+    levels: [
+      { chip: "basic", title: "Level: Basic", jp: "「Wi-Fi、ダメです。助けてください。」",
+        explain: "Very short sentences, limited vocabulary, few details. Use yes/no questions and speak slowly." },
+      { chip: "intermediate", title: "Level: Intermediate", jp: "「予約しようとしたら、画面がエラーになって先に進めませんでした。」",
+        explain: "Can explain the situation clearly, but may struggle with technical terms. Avoid jargon; confirm step by step." },
+      { chip: "fluent", title: "Level: Fluent", jp: "「アップデート後に再起動してもエラーコードが出続けるので、ログを確認していただけますか。」",
+        explain: "Complex, fluent sentences including technical terms. Standard SOP wording is fine." }
+    ],
+    phraseExamples: [
+      { bad: "お客様、ちょっと待ってください。",
+        note: "「ちょっと待って」sounds blunt — like a direct command to the customer.",
+        better: "おそれいりますが、少々お待ちいただけますでしょうか。",
+        reason: "Humble polite form (kenjougo + soft request) suits customer support calls." },
+      { bad: "それはできないです。",
+        note: "A flat refusal sounds unhelpful.",
+        better: "申し訳ございませんが、そちらは対応が難しい状況でございます。代わりに〇〇でお手伝いできます。",
+        reason: "The refusal is softened and an alternative is offered." },
+      { bad: "パスワードをもう一回入力して。",
+        note: "Casual \"もう一回\" and a plain command are unsuitable on the phone.",
+        better: "恐れ入りますが、パスワードをもう一度ご入力いただけますでしょうか。",
+        reason: "\"もう一度\" is more formal and a polite request form is used." }
+    ],
+    rules: [
+      { test: /ちょっと待って/, note: "「ちょっと待って」is too casual and sounds rude on a customer call.",
+        better: "おそれいりますが、少々お待ちいただけますでしょうか。", reason: "Use humble polite forms when asking a customer to wait." },
+      { test: /できないです|無理です/, note: "A flat refusal sounds unhelpful.",
+        better: "申し訳ございませんが、そちらは対応が難しい状況でございます。代わりに〇〇でお手伝いできます。", reason: "Soften the refusal and always offer an alternative." },
+      { test: /もう一回/, note: "「もう一回」is too casual; use the formal form.",
+        better: "恐れ入りますが、もう一度ご入力いただけますでしょうか。", reason: "「もう一度」is more formal, with a polite request." },
+      { test: /してください$|して(ね|よ)$/, note: "A direct command without polite forms sounds like an order.",
+        better: "お手数ですが、〇〇していただけますでしょうか。", reason: "Add a polite request form for customer instructions." },
+      { test: /何ですか$|わからない|知らない/, note: "A direct question or denial sounds confrontational or unconvincing.",
+        better: "差し支えなければ、詳細をお教えいただけますでしょうか。確認いたしますので、少々お時間をください。", reason: "Soft wording plus proactive action reduces the harsh tone." }
+    ]
+  },
+
+  ja: {
+    title: "ANA コールアシスタント",
+    desc: "航空会社ITサポートのオペレーター向けツール — 通話要約、日本語レベル判定、フレーズチェック。すべての例は架空のものです。データは保存されません。",
+    sec1Title: "通話サマリー",
+    sec1Desc: "通話の要点を一箇所にまとめて表示します。通話中にメモや書き起こしを入力すると、サマリーがすぐに表示されます。",
+    lblCall: "通話メモ / 書き起こし",
+    phCall: "例：お客様：佐藤様、ANAの会員。Wi-Fi機内サービスに接続できない。対応：再接続ガイドをメールで送付。",
+    btnSummary: "通話を要約する",
+    btnClear: "クリア",
+    lblSummary: "サマリー",
+    sec2Title: "日本語レベル分析",
+    sec2Desc: "お客様の日本語レベルをやさしい言葉で判定します — 初級・中級・上級 — この通話でどう話しかければよいかがひと目でわかります。",
+    lblJp: "通話から取得した日本語テキスト",
+    phJp: "例：パソコンが急に動かなくなって、予約ができません。",
+    btnLevel: "日本語レベルを判定する",
+    lblLevel: "レベル判定",
+    sec3Title: "フレーズチェック",
+    sec3Desc: "不適切または不自然な日本語フレーズを検出し、より良い言い換えと短い理由を提案します。通話で使う前にフレーズを確認しましょう。",
+    lblPhrase: "チェックする日本語フレーズ",
+    phPhrase: "例：お客様、ちょっと待ってください。",
+    btnPhrase: "フレーズを修正する",
+    lblFix: "修正案",
+    footer: "ANA コールアシスタント — すべての例は研修用の架空のものです。データは訪問間で保存されません。",
+    needCall: "まず通話メモまたは書き起こしを入力してください。",
+    needJp: "まず日本語テキストを入力してください。",
+    needPhrase: "まずチェックする日本語フレーズを入力してください。",
+    sumTitle: "通話サマリー",
+    callerLabel: "お客様",
+    mainPoints: "主なポイント",
+    linesAnalyzed: "行を分析",
+    agentActions: "オペレーターの対応",
+    refLabel: "参照番号",
+    statusLine: "ステータス: オペレーターによるフォローアップが必要。",
+    lvlBasic: "レベル判定: 初級",
+    lvlBasicDesc: "お客様は短く簡単な文を使っており、語彙が限られています。",
+    lvlBasicTip: "アドバイス: はい/いいえで答えられる質問を使い、ゆっくり話し、情報を一つずつ確認する。",
+    lvlMid: "レベル判定: 中級",
+    lvlMidDesc: "お客様は状況をはっきり説明できますが、専門用語には弱い可能性があります。",
+    lvlMidTip: "アドバイス: 専門用語を避け、手順を一つずつ説明し、オペレーターの指示をお客様が復唱するよう依頼する。",
+    lvlHigh: "レベル判定: 上級",
+    lvlHighDesc: "お客様は複雑で流暢な文を使い、専門用語も理解しています。",
+    lvlHighTip: "アドバイス: 通常のSOP用語でそのまま対応し、解決を速めてよい。",
+    agentPhrase: "オペレーターのフレーズ",
+    phraseOk: "このフレーズはサポート通話の文脈で適切に見えます。\n\n注意: お客様に何かをお願いするときは、必ず丁寧形（です/ます＋いただけますでしょうか）を使う。",
+    origPhrase: "元のフレーズ",
+    problemN: "問題",
+    fixLabel: "修正案",
+    reasonLabel: "理由",
+    useFix: "通話では上記の修正案をご利用ください。",
+    demoSummary: "通話サマリー（例）\n------------------\nお客様：佐藤様\n主なポイント:\n  1. NH822便で機内Wi-Fi（ANA SKY Wi-Fi）に接続できない。\nオペレーターの対応:\n  – 再接続ガイドをメールで送付。\nステータス: オペレーターによるフォローアップが必要。",
+    callerRe: "(?:お客様|顧客)\\s*[:：]\\s*([^,，。.\\n]+)",
+    issueRe: /問題|エラー|できない|失敗|故障|不具合|接続できない/,
+    actionRe: /^対応|対応[:：]|オペレーターが|手順|再起動|リセット|送付|確認し/,
+    summaries: [
+      { title: "通話 1 — 機内Wi-Fiに接続できない",
+        lines: ["お客様：佐藤様、大阪にお住まいのANA会員。",
+                "問題：羽田–クアラルンプール便（NH822）で機内Wi-Fi（ANA SKY Wi-Fi）に接続できない。",
+                "対応：オペレーターがお客様のアカウントを確認し、再接続ガイドをメールで送付。",
+                "結果：搭乗前に再接続を試みるようご案内。ITチーム向けにチケットを記録。"],
+        meta: "カテゴリ：接続の問題 · 優先度：中" },
+      { title: "通話 2 — ANAアプリにログインできない",
+        lines: ["お客様：山田様、パスワードが正しいのにANAアプリで「パスワードが違います」のエラーを報告。",
+                "問題：アカウントに古いメールアドレスが登録されており、二段階認証が失敗。",
+                "対応：オペレーターが本人確認のうえ、二段階認証をリセットし、メールアドレスを更新。",
+                "結果：通話中にお客様のログインが成功。チケットはクローズ。"],
+        meta: "カテゴリ：アカウント・ログイン · 優先度：高" },
+      { title: "通話 3 — 関西空港のチェックインキオスクが故障",
+        lines: ["お客様：伊藤様（空港スタッフ）、ANAのチェックインキオスク2台でエラー画面を報告。",
+                "問題：朝のネットワーク復旧後、端末が設定更新のダウンロードに失敗。",
+                "対応：オペレーターがリモート再起動を案内し、運用ダッシュボードで端末の状態を確認。",
+                "結果：1台は復旧、1台は現地の技術者に引き継ぎ。"],
+        meta: "カテゴリ：現地のハードウェア · 優先度：中" }
+    ],
+    levels: [
+      { chip: "初級", chipClass: "asas", title: "レベル：初級", jp: "「Wi-Fi、ダメです。助けてください。」",
+        explain: "文が非常に短く、語彙が限られている。はい/いいえで答えられる質問を使い、ゆっくり話す。" },
+      { chip: "中級", chipClass: "sederhana", title: "レベル：中級", jp: "「予約しようとしたら、画面がエラーになって先に進めませんでした。」",
+        explain: "状況をはっきり説明できるが、専門用語には弱い可能性がある。専門用語を避け、手順ごとに確認する。" },
+      { chip: "上級", chipClass: "lancar", title: "レベル：上級", jp: "「アップデート後に再起動してもエラーコードが出続けるので、ログを確認していただけますか。」",
+        explain: "複雑で流暢な文。専門用語も使える。通常のSOP用語でそのまま対応できる。" }
+    ],
+    phraseExamples: [
+      { bad: "お客様、ちょっと待ってください。",
+        note: "「ちょっと待って」は配慮に欠け、お客様への命令のように聞こえる。",
+        better: "おそれいりますが、少々お待ちいただけますでしょうか。",
+        reason: "謙譲語＋丁寧な依頼形がカスタマーサポートの通話にふさわしい。" },
+      { bad: "それはできないです。",
+        note: "直接的な断り口調で、協力的に聞こえない。",
+        better: "申し訳ございませんが、そちらは対応が難しい状況でございます。代わりに〇〇でお手伝いできます。",
+        reason: "断りを和らげ、代替案を提示する。" },
+      { bad: "パスワードをもう一回入力して。",
+        note: "カジュアルな「もう一回」と普通の命令形は電話では不適切。",
+        better: "恐れ入りますが、パスワードをもう一度ご入力いただけますでしょうか。",
+        reason: "「もう一度」はよりフォーマルで、丁寧な依頼形を使う。" }
+    ],
+    rules: [
+      { test: /ちょっと待って/, note: "「ちょっと待って」はカジュアルすぎて、お客様の通話では失礼に聞こえる。",
+        better: "おそれいりますが、少々お待ちいただけますでしょうか。", reason: "お客様に待っていただく場合は謙譲語の丁寧な形を使う。" },
+      { test: /できないです|無理です/, note: "直接的な断り口調で、協力的に聞こえない。",
+        better: "申し訳ございませんが、そちらは対応が難しい状況でございます。代わりに〇〇でお手伝いできます。", reason: "断りを和らげ、必ず代替案を提示する。" },
+      { test: /もう一回/, note: "「もう一回」はカジュアルすぎる。フォーマルな形を使う。",
+        better: "恐れ入りますが、もう一度ご入力いただけますでしょうか。", reason: "「もう一度」はよりフォーマルで、丁寧な依頼形を伴う。" },
+      { test: /してください$|して(ね|よ)$/, note: "丁寧形のない命令は命令のように聞こえる。",
+        better: "お手数ですが、〇〇していただけますでしょうか。", reason: "お客様への依頼には丁寧な依頼形を加える。" },
+      { test: /何ですか$|わからない|知らない/, note: "直接的な質問・否定は威圧的または不安を与える響きになる。",
+        better: "差し支えなければ、詳細をお教えいただけますでしょうか。確認いたしますので、少々お時間をください。", reason: "やわらかい言い回しと前向きな対応がきつい印象を減らす。" }
+    ]
+  }
+};
+
+var state = { lang: "ja", dark: false };
+
+/* ---------- Papar contoh ---------- */
+
+function chipClassOf(chip) {
+  if (/asas|basic|初級/.test(chip)) return "asas";
+  if (/sederhana|intermediate|中級/.test(chip)) return "sederhana";
+  return "lancar";
+}
+
+function renderSummaries() {
+  var L = I18N[state.lang];
+  document.getElementById("summary-examples").innerHTML = L.summaries.map(function (s) {
+    return '<div class="card"><h3>' + s.title + "</h3>" +
+      s.lines.map(function (l) { return "<p>• " + l + "</p>"; }).join("") +
+      '<div class="meta">' + s.meta + "</div></div>";
+  }).join("");
+}
+
+function renderLevels() {
+  var L = I18N[state.lang];
+  document.getElementById("level-examples").innerHTML = L.levels.map(function (s) {
+    return '<div class="card"><h3>' + s.title + '</h3> <span class="chip ' + chipClassOf(s.chip) + '">' + s.chip + "</span>" +
+      '<p>' + s.jp + "</p>" +
+      "<p>" + s.explain + "</p></div>";
+  }).join("");
+}
+
+function renderPhrases() {
+  var L = I18N[state.lang];
+  document.getElementById("phrase-examples").innerHTML = L.phraseExamples.map(function (p) {
+    return '<div class="card"><h3>' + L.origPhrase + ': ' + p.bad + "</h3>" +
+      '<div class="fix-box"><div class="note">⚠ ' + p.note + "</div>" +
+      '<div class="better">✓ ' + p.better + "</div>" +
+      '<div class="reason">' + p.reason + "</div></div></div>";
+  }).join("");
+}
+
+/* ---------- Static UI texts ---------- */
+
+function applyStaticTexts() {
+  var L = I18N[state.lang];
+  document.documentElement.lang = state.lang;
+  document.title = L.title;
+  document.getElementById("app-title").textContent = L.title;
+  document.getElementById("app-desc").textContent = L.desc;
+  document.getElementById("sec1-title").textContent = L.sec1Title;
+  document.getElementById("sec1-desc").textContent = L.sec1Desc;
+  document.getElementById("lbl-call-input").textContent = L.lblCall;
+  document.getElementById("call-input").placeholder = L.phCall;
+  document.getElementById("btn-summary").textContent = L.btnSummary;
+  document.getElementById("btn-summary-clear").textContent = L.btnClear;
+  document.getElementById("lbl-summary").textContent = L.lblSummary;
+  document.getElementById("sec2-title").textContent = L.sec2Title;
+  document.getElementById("sec2-desc").textContent = L.sec2Desc;
+  document.getElementById("lbl-jp-input").textContent = L.lblJp;
+  document.getElementById("jp-input").placeholder = L.phJp;
+  document.getElementById("btn-level").textContent = L.btnLevel;
+  document.getElementById("btn-level-clear").textContent = L.btnClear;
+  document.getElementById("lbl-level").textContent = L.lblLevel;
+  document.getElementById("sec3-title").textContent = L.sec3Title;
+  document.getElementById("sec3-desc").textContent = L.sec3Desc;
+  document.getElementById("lbl-phrase-input").textContent = L.lblPhrase;
+  document.getElementById("phrase-input").placeholder = L.phPhrase;
+  document.getElementById("btn-phrase").textContent = L.btnPhrase;
+  document.getElementById("btn-phrase-clear").textContent = L.btnClear;
+  document.getElementById("lbl-fix").textContent = L.lblFix;
+  document.getElementById("footer-text").textContent = L.footer;
+}
+
+/* ---------- Ciri 1: Rumuskan panggilan ---------- */
+
+function summarizeCall(text) {
+  var L = I18N[state.lang];
+  var sentences = text.split(/(?:[。．!?！？]|\.\s+|\n)+/).map(function (s) {
+    return s.trim().replace(/^[-•\s]+/, "");
+  }).filter(function (s) { return s.length > 0; });
+  if (sentences.length === 0) return "";
+
+  var actions = [], issues = [], facts = [];
+  sentences.forEach(function (s) {
+    if (L.actionRe.test(s)) actions.push(s);
+    else if (L.issueRe.test(s)) issues.push(s);
+    else facts.push(s);
+  });
+
+  var out = L.sumTitle + "\n------------------\n";
+  var caller = text.match(new RegExp(L.callerRe));
+  if (caller) out += L.callerLabel + ": " + caller[1].trim() + "\n";
+  out += L.mainPoints + " (" + sentences.length + " " + L.linesAnalyzed + "):\n";
+  var mains = issues.length ? issues : facts;
+  mains.slice(0, 3).forEach(function (s, i) { out += "  " + (i + 1) + ". " + s + "\n"; });
+  if (actions.length) {
+    out += L.agentActions + ":\n";
+    actions.slice(0, 3).forEach(function (s) { out += "  – " + s + "\n"; });
+  }
+  var ticket = text.match(/(?:tiket|チケット|ticket|TKT|case)\s*[:#]?\s*([A-Za-z0-9\-]+)/i);
+  if (ticket) out += L.refLabel + ": " + ticket[1] + "\n";
+  out += L.statusLine;
+  return out;
+}
+
+document.getElementById("btn-summary").addEventListener("click", function () {
+  var text = document.getElementById("call-input").value.trim();
+  var res = document.getElementById("summary-result");
+  if (!text) { res.textContent = I18N[state.lang].needCall; return; }
+  res.textContent = summarizeCall(text);
+});
+document.getElementById("btn-summary-clear").addEventListener("click", function () {
+  document.getElementById("call-input").value = "";
+  document.getElementById("summary-result").textContent = "";
+});
+
+/* ---------- Ciri 2: Nilai tahap bahasa ---------- */
+
+function estimateLevel(text) {
+  var L = I18N[state.lang];
+  if (!text.trim()) return "";
+  var chars = text.length;
+  var kanji = (text.match(/[\u4e00-\u9faf]/g) || []).length;
+  var kanjiRatio = kanji / chars;
+  var polite = /ございます|ください|いただけ|恐れ入ります|おそれいります|ませ/.test(text);
+  var tech = /エラー|アップデート|再起動|ログ|接続|設定|コード|サーバー|パスワード|アカウント|予約/.test(text);
+  var complex = /[、。]/.test(text) && chars >= 30;
+  var casual = /ダメ|ちょっと|もう一回/.test(text);
+  var short = chars <= 15;
+
+  var score = 0;
+  if (kanjiRatio > 0.25) score += 2; else if (kanjiRatio > 0.10) score += 1;
+  if (polite) score += 2;
+  if (tech) score += 1;
+  if (complex) score += 1;
+  if (casual) score -= 1;
+  if (short) score -= 1;
+
+  if (score <= 0) {
+    return L.lvlBasic + "\n\n" + L.lvlBasicDesc + "\n" + L.lvlBasicTip +
+      "\n\n" + L.agentPhrase + ": 「はい、大丈夫ですか。」「もう一度お願いします。」";
+  } else if (score <= 3) {
+    return L.lvlMid + "\n\n" + L.lvlMidDesc + "\n" + L.lvlMidTip +
+      "\n\n" + L.agentPhrase + ": 「画面に「エラー」と表示されていますか。」";
+  } else {
+    return L.lvlHigh + "\n\n" + L.lvlHighDesc + "\n" + L.lvlHighTip +
+      "\n\n" + L.agentPhrase + ": 「詳細を確認いたしますので、エラーコードをお知らせいただけますか。」";
+  }
+}
+
+document.getElementById("btn-level").addEventListener("click", function () {
+  var text = document.getElementById("jp-input").value.trim();
+  var res = document.getElementById("level-result");
+  if (!text) { res.textContent = I18N[state.lang].needJp; return; }
+  res.textContent = estimateLevel(text);
+});
+document.getElementById("btn-level-clear").addEventListener("click", function () {
+  document.getElementById("jp-input").value = "";
+  document.getElementById("level-result").textContent = "";
+});
+
+/* ---------- Ciri 3: Betulkan frasa ---------- */
+
+function correctPhrase(text) {
+  var L = I18N[state.lang];
+  if (!text.trim()) return "";
+  var hits = L.rules.filter(function (r) { return r.test.test(text); });
+  if (hits.length === 0) return L.phraseOk;
+  var out = L.origPhrase + ": " + text + "\n\n";
+  hits.slice(0, 3).forEach(function (r, i) {
+    out += L.problemN + " " + (i + 1) + ": " + r.note + "\n";
+    out += L.fixLabel + ": " + r.better + "\n";
+    out += L.reasonLabel + ": " + r.reason + "\n\n";
+  });
+  out += L.useFix;
+  return out;
+}
+
+document.getElementById("btn-phrase").addEventListener("click", function () {
+  var text = document.getElementById("phrase-input").value.trim();
+  var res = document.getElementById("phrase-result");
+  if (!text) { res.textContent = I18N[state.lang].needPhrase; return; }
+  res.textContent = correctPhrase(text);
+});
+document.getElementById("btn-phrase-clear").addEventListener("click", function () {
+  document.getElementById("phrase-input").value = "";
+  document.getElementById("phrase-result").textContent = "";
+});
+
+/* ---------- Theme: light / dark ---------- */
+
+document.getElementById("btn-theme").addEventListener("click", function () {
+  state.dark = !state.dark;
+  document.body.classList.toggle("dark", state.dark);
+  this.textContent = state.dark ? "☀️" : "🌙";
+});
+
+/* ---------- Language switching ---------- */
+
+function applyLanguage() {
+  applyStaticTexts();
+  renderSummaries();
+  renderLevels();
+  renderPhrases();
+  // Re-render demo results in the new language (inputs are never preserved)
+  document.getElementById("summary-result").textContent = I18N[state.lang].demoSummary;
+  document.getElementById("level-result").textContent =
+    estimateLevel("予約しようとしたら、画面がエラーになって先に進めませんでした。");
+  document.getElementById("phrase-result").textContent =
+    correctPhrase("お客様、ちょっと待ってください。");
+  document.querySelectorAll(".ctrl-btn.lang").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.lang === state.lang);
+  });
+}
+
+document.querySelectorAll(".ctrl-btn.lang").forEach(function (b) {
+  b.addEventListener("click", function () {
+    state.lang = this.dataset.lang;
+    applyLanguage();
+  });
+});
+
+/* ---------- Inisialisasi ---------- */
+applyLanguage();
+</script>
+</body>
+</html>
